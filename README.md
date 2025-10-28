@@ -13,8 +13,19 @@
 <img width="1004" height="834" alt="Image" src="https://github.com/user-attachments/assets/94289529-43dc-4c46-94e3-d0436b3866c2" />
 
 ## 🎯 Main Function
+
+> ### 접속
 <img width="1680" height="980" alt="Image" src="https://github.com/user-attachments/assets/baeaad50-41b2-48cb-8828-a14315b50337" />
+
+> ### 식당 메뉴
 <img width="2556" height="1318" alt="Image" src="https://github.com/user-attachments/assets/1c43757d-ca45-4cbd-8d38-fff644304426" />
+
+> ### 관계 없는 얘기를 했을 경우, AI 답변
+<img width="2544" height="578" alt="Image" src="https://github.com/user-attachments/assets/77ee1000-d654-40ca-bbdf-4c5080151227" />
+
+> ### 제대로 된 질문을 하지 않았을 경우, Fallback 반응
+<img width="2540" height="526" alt="image" src="https://github.com/user-attachments/assets/7e210d08-6438-402e-8362-b3947faff7da" />
+
 
 ## 🤟 Roles in Charge
 
