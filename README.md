@@ -20,6 +20,9 @@
 > ### 식당 메뉴
 <img width="2556" height="1318" alt="Image" src="https://github.com/user-attachments/assets/1c43757d-ca45-4cbd-8d38-fff644304426" />
 
+> ### 공지사항
+<img width="2551" height="1214" alt="image" src="https://github.com/user-attachments/assets/d74bc3bf-d5c7-40e5-94c7-b7f191680b76" />
+
 > ### 관계 없는 얘기를 했을 경우, AI 답변
 <img width="2544" height="578" alt="Image" src="https://github.com/user-attachments/assets/77ee1000-d654-40ca-bbdf-4c5080151227" />
 
