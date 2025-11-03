@@ -19,7 +19,7 @@
 ## 🎯 Main Function
 
 > ### 접속
-<img width="1680" height="980" alt="Image" src="https://github.com/user-attachments/assets/baeaad50-41b2-48cb-8828-a14315b50337" />
+<img width="1656" height="1127" alt="Image" src="https://github.com/user-attachments/assets/77078e9d-966a-48c7-853c-31fb8d0e6e14" />
 
 > ### 식당 메뉴
 <img width="2556" height="1318" alt="Image" src="https://github.com/user-attachments/assets/1c43757d-ca45-4cbd-8d38-fff644304426" />
