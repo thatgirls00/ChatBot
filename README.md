@@ -52,7 +52,7 @@
   </tr>
 </table>
 
-> 전현수(TL) : Spring API Server 개발 (Java) <br><br>
+> 전현수(TL) : Spring API Server 개발 (Java) / 공지사항 및 식단표 크롤러 개발 (Python) <br><br>
 > 민사빈 : Next.js 기반 UI 개발 및 페이지 디자인, API 연동
 </div>
 <br>
