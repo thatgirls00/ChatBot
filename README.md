@@ -78,3 +78,9 @@
 ![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=for-the-badge&logo=openai&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=Redis&logoColor=white)
 
+## 🚀 Run Server
+```
+자세한 실행 및 설정 방법은 각 디렉토리의 README를 참조해주세요.
+```
+- 🖥️  [Spring Boot Server](https://github.com/thatgirls00/ChatBot/blob/main/server/README.md)
+- 🖥️ ￼[Crawler](https://github.com/thatgirls00/ChatBot/blob/main/crawler/README.md)
