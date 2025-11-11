@@ -1,16 +1,20 @@
-# HKNU Scraper
+# 크롤링 & 데이터 갱신 로직 (Scheduler + Crawler)
 
-한경국립대학교 공지사항 및 식단표 크롤러 프로젝트입니다.
+## 1. 6시간 주기 크롤링
 
-## 크롤러 종류
+CrawlingScheduler 에서 6시간마다 다음을 수행:
+1.	학사/장학/한경 공지 페이지 크롤링
+2.	학생/교직원/기숙사 식단 페이지 크롤링
+3.	학사일정 페이지 크롤링(있다면)
 
-### 📌 식단표
-- 학생식당: `student_meal.py`
-- 교직원식당: `faculty_meal.py`
-- 기숙사식당: `dorm_meal.py`
+## 2. 크롤링 → DB 반영 → 캐시 재빌드
 
-### 📌 공지사항
-- 장학공지: `scholarship_notice.py`
-- 학사공지: `academic_notice.py`
-- 환경공지: `hankyong_notice.py`
-- 학사일정: `academic_schedule.py`
+한 번의 크롤링 사이클에서:
+1.	크롤링 데이터 수집
+	- 공지: 제목, 작성일, URL, 카테고리, 본문 일부, hash 등 생성
+	- 식단: 날짜, 식당구분(학생/교직원/기숙사), 메뉴 리스트, hash
+2.	변경 감지
+	- DB에 기존 hash 와 비교해 새로운 데이터만 insert
+	- 동일 hash 는 중복 저장 방지
+3.	Redis 캐시 삭제 & 재생성
+	- 공지/식단 관련 키들을 미리 정한 규칙으로 관리
