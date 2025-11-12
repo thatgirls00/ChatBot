@@ -6,8 +6,8 @@ import lombok.Data;
 public class GptResponseDto {
 
     private String intent;
-    private String answer;      // fallback용
-    private Object data;        // 테이블 결과용
+    private String answer;
+    private Object data;
 
     public GptResponseDto(String intent, String answer) {
         this.intent = intent;

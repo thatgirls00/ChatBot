@@ -13,38 +13,41 @@ import java.util.regex.Pattern;
 @Slf4j
 public class DateTimeExtractor {
 
-    /**
-     * 사용자 입력에서 날짜 범위를 추출합니다. (기본: 오늘~오늘)
-     */
     public static LocalDate[] extractDateRange(String userInput) {
         int currentYear = LocalDate.now(Clock.systemUTC()).getYear();
         LocalDate today = LocalDate.now(Clock.systemUTC());
 
-        // 1. 고정 표현 우선 처리
-        if (userInput.contains("오늘")) {
-            return new LocalDate[]{today, today};
-        } else if (userInput.contains("내일")) {
-            LocalDate date = today.plusDays(1);
-            return new LocalDate[]{date, date};
-        } else if (userInput.contains("모레")) {
-            LocalDate date = today.plusDays(2);
-            return new LocalDate[]{date, date};
-        } else if (userInput.contains("어제")) {
-            LocalDate date = today.minusDays(1);
-            return new LocalDate[]{date, date};
-        } else if (userInput.contains("이번주") || userInput.contains("이번 주")) {
+        if (userInput.contains("오늘")) return new LocalDate[]{today, today};
+        if (userInput.contains("내일")) return new LocalDate[]{today.plusDays(1), today.plusDays(1)};
+        if (userInput.contains("모레")) return new LocalDate[]{today.plusDays(2), today.plusDays(2)};
+        if (userInput.contains("어제")) return new LocalDate[]{today.minusDays(1), today.minusDays(1)};
+        if (userInput.contains("그제") || userInput.contains("그저께")) return new LocalDate[]{today.minusDays(2), today.minusDays(2)};
+        if (userInput.contains("이번주") || userInput.contains("이번 주")) {
             LocalDate monday = today.with(DayOfWeek.MONDAY);
-            LocalDate sunday = monday.plusDays(6);
-            return new LocalDate[]{monday, sunday};
-        } else if (userInput.contains("이번달") || userInput.contains("이번 달")) {
-            LocalDate startOfMonth = today.withDayOfMonth(1);
-            LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
-            return new LocalDate[]{startOfMonth, endOfMonth};
+            return new LocalDate[]{monday, monday.plusDays(6)};
+        }
+        if (userInput.contains("다음주") || userInput.contains("다음 주")) {
+            LocalDate nextMonday = today.with(DayOfWeek.MONDAY).plusWeeks(1);
+            return new LocalDate[]{nextMonday, nextMonday.plusDays(6)};
+        }
+        if (userInput.contains("지난주") || userInput.contains("지난 주") || userInput.contains("저번주") || userInput.contains("저번 주")) {
+            LocalDate lastMonday = today.with(DayOfWeek.MONDAY).minusWeeks(1);
+            return new LocalDate[]{lastMonday, lastMonday.plusDays(6)};
+        }
+        if (userInput.contains("이번달") || userInput.contains("이번 달")) {
+            LocalDate start = today.withDayOfMonth(1);
+            return new LocalDate[]{start, start.withDayOfMonth(start.lengthOfMonth())};
+        }
+        if (userInput.contains("지난달") || userInput.contains("지난 달") || userInput.contains("저번달") || userInput.contains("저번 달")) {
+            LocalDate start = today.minusMonths(1).withDayOfMonth(1);
+            return new LocalDate[]{start, start.withDayOfMonth(start.lengthOfMonth())};
+        }
+        if (userInput.contains("다음달") || userInput.contains("다음 달")) {
+            LocalDate start = today.plusMonths(1).withDayOfMonth(1);
+            return new LocalDate[]{start, start.withDayOfMonth(start.lengthOfMonth())};
         }
 
-        // 2. MM월 DD일
-        Pattern mdPattern = Pattern.compile("(\\d{1,2})월\\s*(\\d{1,2})일");
-        Matcher mdMatcher = mdPattern.matcher(userInput);
+        Matcher mdMatcher = Pattern.compile("(\\d{1,2})월\\s*(\\d{1,2})일").matcher(userInput);
         if (mdMatcher.find()) {
             try {
                 int month = Integer.parseInt(mdMatcher.group(1));
@@ -53,50 +56,51 @@ public class DateTimeExtractor {
                 log.debug("[extractDateRange] MM월 DD일 파싱 성공: {}", date);
                 return new LocalDate[]{date, date};
             } catch (Exception e) {
-                log.debug("[extractDateRange] MM월 DD일 파싱 실패, fallback");
+                log.warn("[extractDateRange] MM월 DD일 파싱 실패: {}", e.getMessage());
             }
         }
 
-        // 3. MM월 (예: "7월")
-        Pattern monthOnlyPattern = Pattern.compile("(\\d{1,2})월");
-        Matcher monthMatcher = monthOnlyPattern.matcher(userInput);
+        Matcher monthMatcher = Pattern.compile("(\\d{1,2})월").matcher(userInput);
         if (monthMatcher.find()) {
             try {
                 int month = Integer.parseInt(monthMatcher.group(1));
                 LocalDate start = LocalDate.of(currentYear, month, 1);
-                LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-                log.debug("[extractDateRange] MM월 파싱 성공: {} ~ {}", start, end);
-                return new LocalDate[]{start, end};
+                return new LocalDate[]{start, start.withDayOfMonth(start.lengthOfMonth())};
             } catch (Exception e) {
-                log.debug("[extractDateRange] MM월 파싱 실패, fallback");
+                log.warn("[extractDateRange] MM월 파싱 실패: {}", e.getMessage());
             }
         }
 
-        // 4. yyyy-MM-dd 또는 MM-dd
-        userInput = userInput.replaceAll("\\.", "-");
-        Pattern ymdPattern = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})|(\\d{2}-\\d{2})");
-        Matcher ymdMatcher = ymdPattern.matcher(userInput);
-        if (ymdMatcher.find()) {
-            String match = ymdMatcher.group();
+        Matcher fullDateMatcher = Pattern.compile("(\\d{4})[\\.\\-](\\d{1,2})[\\.\\-](\\d{1,2})").matcher(userInput);
+        if (fullDateMatcher.find()) {
             try {
-                if (match.matches("\\d{2}-\\d{2}")) {
-                    match = currentYear + "-" + match;
-                }
-                LocalDate date = LocalDate.parse(match, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                log.debug("[extractDateRange] yyyy-MM-dd 또는 MM-dd 파싱 성공: {}", date);
+                int year = Integer.parseInt(fullDateMatcher.group(1));
+                int month = Integer.parseInt(fullDateMatcher.group(2));
+                int day = Integer.parseInt(fullDateMatcher.group(3));
+                LocalDate date = LocalDate.of(year, month, day);
+                log.debug("[extractDateRange] yyyy-MM-dd 파싱 성공: {}", date);
                 return new LocalDate[]{date, date};
             } catch (Exception e) {
-                log.debug("[extractDateRange] yyyy-MM-dd 또는 MM-dd 파싱 실패");
+                log.warn("[extractDateRange] yyyy-MM-dd 파싱 실패: {}", e.getMessage());
             }
         }
 
-        // 5. fallback
+        Matcher shortDateMatcher = Pattern.compile("(\\d{1,2})[\\.\\-](\\d{1,2})").matcher(userInput);
+        if (shortDateMatcher.find()) {
+            try {
+                int month = Integer.parseInt(shortDateMatcher.group(1));
+                int day = Integer.parseInt(shortDateMatcher.group(2));
+                LocalDate date = LocalDate.of(currentYear, month, day);
+                log.debug("[extractDateRange] MM-dd 파싱 성공: {}", date);
+                return new LocalDate[]{date, date};
+            } catch (Exception e) {
+                log.warn("[extractDateRange] MM-dd 파싱 실패: {}", e.getMessage());
+            }
+        }
+
         return new LocalDate[]{today, today};
     }
 
-    /**
-     * 사용자 입력에서 식사 시간대 추출.
-     */
     public static String extractMealTime(String userInput) {
         if (userInput.contains("맛난")) return "맛난한끼";
         if (userInput.contains("건강")) return "건강한끼";
@@ -106,9 +110,6 @@ public class DateTimeExtractor {
         return null;
     }
 
-    /**
-     * 학사일정 content에서 MM.DD (요일) ~ MM.DD (요일) 형태의 기간을 추출합니다.
-     */
     public static LocalDate[] extractScheduleDateRange(String content, int year) {
         Pattern pattern = Pattern.compile("(\\d{2}\\.\\d{2})\\s*\\([^)]+\\)\\s*~\\s*(\\d{2}[\\.\\-]\\d{2})");
         Matcher matcher = pattern.matcher(content);
@@ -116,13 +117,9 @@ public class DateTimeExtractor {
             try {
                 String startStr = matcher.group(1).replace(".", "-");
                 String endStr = matcher.group(2).replace(".", "-");
-
                 LocalDate start = LocalDate.parse(year + "-" + startStr);
                 LocalDate end = LocalDate.parse(year + "-" + endStr);
-
-                if (end.isBefore(start)) {
-                    end = end.plusYears(1);
-                }
+                if (end.isBefore(start)) end = end.plusYears(1);
                 return new LocalDate[]{start, end};
             } catch (DateTimeParseException e) {
                 return null;
@@ -141,5 +138,10 @@ public class DateTimeExtractor {
         }
 
         return null;
+    }
+
+    public static boolean containsDateKeyword(String input) {
+        if (input == null || input.isBlank()) return false;
+        return input.matches(".*(오늘|내일|모레|어제|이번주|이번 주|다음주|다음 주|지난주|저번주|이번달|이번 달|다음달|다음 달|지난달|저번달).*");
     }
 }

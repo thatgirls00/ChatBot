@@ -86,7 +86,6 @@ public class TableQueryService {
                     if (hasKeyword && extractedMenu.contains(keyword)) keywordFound = true;
                     else if (hasKeyword && !extractedMenu.contains(keyword)) continue;
 
-                    // [전체] 생략 조건 분기
                     String formatted = (mealTime != null)
                             ? String.format("[%s]\n%s", mealTime, extractedMenu)
                             : extractedMenu;
@@ -98,22 +97,20 @@ public class TableQueryService {
             else if (data instanceof StudentMeal meal) {
                 menu = meal.getMenu();
                 dateStr = meal.getMealDate();
-                String studentMealTime = meal.getMealTime(); // ex: "건강한끼(11:30~13:30)"
+                String studentMealTime = meal.getMealTime();
                 if (menu == null || dateStr == null || studentMealTime == null) continue;
 
                 LocalDate mealDate = LocalDate.parse(dateStr);
                 if (!mealDate.isBefore(startDate) && !mealDate.isAfter(endDate)) {
                     foundDateInRange = true;
 
-                    String timeLabel = extractTimeLabel(studentMealTime);  // "건강한끼" or "맛난한끼"
-                    String timeRange = extractTimeRange(studentMealTime);  // "11:30~13:30"
+                    String timeLabel = extractTimeLabel(studentMealTime);
+                    String timeRange = extractTimeRange(studentMealTime);
 
-                    // "점심"은 전체 포함, 특정 식단명을 지정한 경우만 필터링
                     if (mealTime != null && !mealTime.isBlank() &&
                             !mealTime.equals("점심") &&
                             !normalizeKorean(timeLabel).equalsIgnoreCase(normalizeKorean(mealTime))) continue;
 
-                    // 조건: 학생식당이고 mealTime이 지정된 경우 -> 키워드 필터는 생략
                     boolean skipKeywordCheck = "학생식당".equals(intent) && mealTime != null && !mealTime.equals("점심");
 
                     if (hasKeyword && !skipKeywordCheck && !menu.contains(keyword)) continue;
@@ -129,15 +126,15 @@ public class TableQueryService {
             else if (data instanceof FacultyMeal meal) {
                 menu = meal.getMenu();
                 dateStr = meal.getMealDate();
-                String facultyMealTime = meal.getMealTime(); // ex: "점심(11:30~13:00)"
+                String facultyMealTime = meal.getMealTime();
                 if (menu == null || dateStr == null || facultyMealTime == null) continue;
 
                 LocalDate mealDate = LocalDate.parse(dateStr);
                 if (!mealDate.isBefore(startDate) && !mealDate.isAfter(endDate)) {
                     foundDateInRange = true;
 
-                    String timeLabel = extractTimeLabel(facultyMealTime);  // "점심"
-                    String timeRange = extractTimeRange(facultyMealTime);  // "11:30~13:00"
+                    String timeLabel = extractTimeLabel(facultyMealTime);
+                    String timeRange = extractTimeRange(facultyMealTime);
 
                     if (mealTime != null && !mealTime.equals(timeLabel)) continue;
                     if (hasKeyword && !menu.contains(keyword)) continue;
@@ -157,7 +154,6 @@ public class TableQueryService {
                 StringBuilder sb = new StringBuilder();
                 sb.append("[").append(entry.getKey()).append("]\n");
 
-                // 중복 제거 + 빈 메뉴 제외
                 List<String> menus = entry.getValue().stream()
                         .distinct()
                         .filter(m -> !m.contains("등록된 식단내용이(가) 없습니다."))
@@ -212,17 +208,20 @@ public class TableQueryService {
         int currentYear = LocalDate.now().getYear();
 
         for (Object data : dataList) {
-            String title = null, dateStr = null;
+            String title = null, dateStr = null, link = null;
 
             if (data instanceof AcademicNotice notice) {
                 title = notice.getTitle();
                 dateStr = notice.getNoticeDate();
+                link = notice.getLink();
             } else if (data instanceof ScholarshipNotice notice) {
                 title = notice.getTitle();
                 dateStr = notice.getNoticeDate();
+                link = notice.getLink();
             } else if (data instanceof HankyongNotice notice) {
                 title = notice.getTitle();
                 dateStr = notice.getNoticeDate();
+                link = notice.getLink();
             } else continue;
 
             if (dateStr == null || dateStr.isBlank()) continue;
@@ -230,35 +229,34 @@ public class TableQueryService {
 
             if (!noticeDate.isBefore(startDate) && !noticeDate.isAfter(endDate)) {
                 foundDateInRange = true;
-                if (!hasKeyword || (title != null && title.contains(keyword))) {
-                    matchedNotices.add(String.format("[%s] %s", noticeDate, title));
+
+                if (!hasKeyword) {
+                    matchedNotices.add(String.format("[%s] %s (%s)", noticeDate, title, link));
+                } else if (title != null) {
+                    if (title.contains("[" + keyword + "]") || title.contains(keyword)) {
+                        matchedNotices.add(String.format("[%s] %s (%s)", noticeDate, title, link));
+                    }
                 }
             } else {
                 boolean isThisYear = noticeDate.getYear() == currentYear;
-                if (hasKeyword && isThisYear && title != null && title.contains(keyword)) {
-                    fallbackNotices.add(String.format("[다른 날짜 %s] %s", dateStr, title));
+                if (hasKeyword && isThisYear && title != null) {
+                    if (title.contains("[" + keyword + "]") || title.contains(keyword)) {
+                        fallbackNotices.add(String.format("[다른 날짜 %s] %s (%s)", dateStr, title, link));
+                    }
                 }
             }
         }
 
-        if (!matchedNotices.isEmpty()) return String.join("\n\n", matchedNotices);
-
-        if (dateFilterApplied && !foundDateInRange && !fallbackNotices.isEmpty()) {
-            return String.format(
-                    "요청하신 기간(%s ~ %s)에는 '%s' 키워드를 포함한 공지사항이 없어요.\n다른 날짜에 찾은 관련 공지사항은 다음과 같아요:\n\n%s",
-                    startDate, endDate, keyword, String.join("\n\n", fallbackNotices)
-            );
-        }
-
-        if (dateFilterApplied) {
-            return String.format("요청하신 기간(%s ~ %s)에는 '%s' 키워드를 포함한 공지사항이 없어요. 다른 기간으로 다시 질문해 보시겠어요?", startDate, endDate, keyword);
+        if (!matchedNotices.isEmpty()) {
+            return String.join("\n", matchedNotices);
         }
 
         if (!fallbackNotices.isEmpty()) {
-            return "최근 관련 공지사항은 다음과 같아요:\n\n" + String.join("\n\n", fallbackNotices);
+            String header = "요청하신 날짜에는 관련 공지사항이 없지만, 다른 날짜에 관련 내용이 있습니다.\n";
+            return header + String.join("\n", fallbackNotices);
         }
 
-        return "최근 관련 공지사항을 찾지 못했어요.";
+        return "요청하신 날짜에 대한 공지사항을 찾을 수 없습니다.";
     }
 
     public String filterAcademicScheduleByConditions(String keyword, LocalDate startDate, LocalDate endDate,
@@ -267,9 +265,8 @@ public class TableQueryService {
         Set<String> matchedSchedules = new LinkedHashSet<>();
         boolean foundDateInRange = false;
 
-        // 연/월만 있을 경우 대비: 기본값 보정
         if (startDate == null && endDate == null && !dateFilterApplied) {
-            log.warn("📆 날짜 필터 없음 → 현재 월 전체로 보정합니다.");
+            log.warn("날짜 필터 없음 → 현재 월 전체로 보정합니다.");
             LocalDate now = LocalDate.now();
             startDate = now.withDayOfMonth(1);
             endDate = now.withDayOfMonth(now.lengthOfMonth());
@@ -283,7 +280,6 @@ public class TableQueryService {
             String content = schedule.getContent();
             if (content == null || content.isBlank()) continue;
 
-            // 키워드 필터 우선 적용
             if (hasKeyword && !content.contains(keyword)) continue;
 
             LocalDate[] scheduleRange = extractScheduleDateRange(content, baseYear);
@@ -303,28 +299,30 @@ public class TableQueryService {
             return String.join("\n\n", matchedSchedules);
         }
 
-        // 키워드만 있고 날짜 필터가 없을 경우 별도 처리 (중복 방지 위해 별도 Set 사용)
         if (!dateFilterApplied && hasKeyword) {
             Set<String> keywordOnlyMatches = new LinkedHashSet<>();
             for (Object data : dataList) {
                 if (!(data instanceof AcademicSchedule schedule)) continue;
                 String content = schedule.getContent();
                 if (content == null || content.isBlank()) continue;
-                if (!content.contains(keyword)) continue;
+
+                if (!content.toLowerCase().contains(keyword.toLowerCase())) continue;
 
                 LocalDate[] scheduleRange = extractScheduleDateRange(content, LocalDate.now().getYear());
                 if (scheduleRange == null) continue;
 
-                keywordOnlyMatches.add(String.format("[%s ~ %s] %s", scheduleRange[0], scheduleRange[1], content));
+                String scheduleStr = String.format("[%s ~ %s] %s", scheduleRange[0], scheduleRange[1], content);
+                keywordOnlyMatches.add(scheduleStr);
             }
 
             if (!keywordOnlyMatches.isEmpty()) {
                 return String.format("'%s' 키워드로 찾은 학사일정입니다:\n\n%s",
                         keyword, String.join("\n\n", keywordOnlyMatches));
+            } else {
+                return String.format("'%s' 키워드를 포함한 학사일정이 아직 등록되지 않았어요.", keyword);
             }
         }
 
-        // fallback: keyword는 있지만 해당 날짜 범위에 없을 때
         if (dateFilterApplied && hasKeyword) {
             String otherDate = findKeywordInOtherDates(keyword, startDate, endDate);
             if (!otherDate.isBlank()) {
@@ -332,7 +330,6 @@ public class TableQueryService {
             }
         }
 
-        // 날짜 기반 응답
         if (dateFilterApplied) {
             if (!foundDateInRange) {
                 return String.format("요청하신 기간(%s ~ %s)에는 학사일정이 없어요. 다른 기간으로 다시 질문해 보시겠어요?", startDate, endDate);
@@ -361,14 +358,12 @@ public class TableQueryService {
             LocalDate scheduleStart = scheduleRange[0];
             LocalDate scheduleEnd = scheduleRange[1];
 
-            // 날짜가 지정된 경우: 요청 기간 외의 일정만 수집
             if (startDate != null && endDate != null) {
                 boolean isOutsideRequestedPeriod = scheduleEnd.isBefore(startDate) || scheduleStart.isAfter(endDate);
                 if (isOutsideRequestedPeriod) {
                     otherMatches.add(String.format("[%s ~ %s] %s", scheduleStart, scheduleEnd, content));
                 }
             } else {
-                // 날짜 지정이 없는 경우: 향후 일정만 수집
                 if (scheduleEnd.isAfter(LocalDate.now())) {
                     otherMatches.add(String.format("[%s ~ %s] %s", scheduleStart, scheduleEnd, content));
                 }
@@ -381,7 +376,6 @@ public class TableQueryService {
     }
 
     private String extractTimeLabel(String mealTime) {
-        // ex: "건강한끼(11:30~13:30)" → "건강한끼"
         int idx = mealTime.indexOf('(');
         return idx != -1 ? mealTime.substring(0, idx).trim() : mealTime.trim();
     }
