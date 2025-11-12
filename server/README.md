@@ -41,9 +41,9 @@ intent 값은 실제 MySQL 테이블과 1:1로 매핑됩니다:
 - ACADEMIC_SCHEDULE → academic_schedule (학사일정)
 
 LLM 응답이 오면:
-	1.	intent 값이 위 7개 중 하나인지 확인
-	2.	해당되면 → 도메인별 서비스로 라우팅
-	3.	해당 안 되거나 “없음”인 경우 → Fallback 로직(일반 LLM 답변 모드)으로 전환
+1.	intent 값이 위 7개 중 하나인지 확인
+2.	해당되면 → 도메인별 서비스로 라우팅
+3.	해당 안 되거나 “없음”인 경우 → Fallback 로직(일반 LLM 답변 모드)으로 전환
   
 
 ## 3. Intent 라우팅 & DB 조회 (도메인 레이어)
